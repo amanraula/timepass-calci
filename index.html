@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SGPA Calculator (10-point)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <h1>SGPA Calculator (out of 10)</h1>
+
+  <div class="note">
+    Grade points used: Ex = 10, A = 9, B = 8, C = 7, D = 6.<br>
+    * Subject names are optional for faster calculation.
+  </div>
+
+  <table id="tbl">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Subject</th>
+        <th>Credits</th>
+        <th>Expected Grade</th>
+        <th class="row-actions">Remove</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+    <tfoot>
+      <tr>
+        <td colspan="5">
+          <button class="btn" id="addRowBtn">+ Add Subject</button>
+          <button class="btn btn-primary" id="calcBtn">Calculate SGPA</button>
+        </td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div class="totals" id="result">Total Credits: 0.00 | Weighted Points: 0.00 | SGPA: 0.00 / 10</div>
+</div>
+
+<!-- Visitor Counter Toggle Button -->
+<div class="counter-btn" id="counterBtn" title="Show Visitor Count"></div>
+
+<!-- Hidden Visitor Count Box -->
+<div class="counter-box" id="counterBox">
+  <h4>Visitors</h4>
+  <!-- Default gnrcounter.com code -->
+  <script language="JavaScript" type="text/javascript" src="https://gnrcounter.com/counter.php?accId=a4acc6046410323ebe42ea439ffe1587"></script>
+  <noscript>
+    <a href="https://gnrcounter.com" title="Web Analytics">Web Analytics</a>
+  </noscript>
+</div>
+
+<script>
+  const gradePoints = { 'Ex': 10, 'A': 9, 'B': 8, 'C': 7, 'D': 6 };
+  const tbody = document.getElementById('tbody');
+  const result = document.getElementById('result');
+  const addRowBtn = document.getElementById('addRowBtn');
+  const calcBtn = document.getElementById('calcBtn');
+
+  function makeGradeSelect() {
+    const sel = document.createElement('select');
+    sel.innerHTML = `
+      <option value="">--Select--</option>
+      ${Object.keys(gradePoints).map(g => `<option value="${g}">${g}</option>`).join('')}
+    `;
+    return sel;
+  }
+
+  function renumber() {
+    [...tbody.querySelectorAll('tr')].forEach((tr, i) => {
+      tr.querySelector('.row-num').textContent = i + 1;
+    });
+  }
+
+  function addRow(data = {}) {
+    const tr = document.createElement('tr');
+    const tdNum = document.createElement('td');
+    tdNum.className = 'row-num';
+    tdNum.textContent = tbody.children.length + 1;
+
+    const tdSub = document.createElement('td');
+    const sub = document.createElement('input');
+    sub.type = 'text';
+    sub.placeholder = 'Subject name';
+    sub.value = data.subject || '';
+    tdSub.appendChild(sub);
+
+    const tdCr = document.createElement('td');
+    const cr = document.createElement('input');
+    cr.type = 'number';
+    cr.min = '0';
+    cr.step = '0.5';
+    cr.placeholder = 'e.g., 3';
+    cr.value = data.credits ?? '';
+    tdCr.appendChild(cr);
+
+    const tdGr = document.createElement('td');
+    const gr = makeGradeSelect();
+    gr.value = data.grade || '';
+    tdGr.appendChild(gr);
+
+    const tdRm = document.createElement('td');
+    tdRm.className = 'row-actions';
+    const rm = document.createElement('button');
+    rm.className = 'btn btn-danger';
+    rm.textContent = 'Remove';
+    rm.onclick = () => {
+      tr.remove();
+      renumber();
+      showLive();
+    };
+    tdRm.appendChild(rm);
+
+    tr.append(tdNum, tdSub, tdCr, tdGr, tdRm);
+    tbody.appendChild(tr);
+  }
+
+  function parseCredit(val) {
+    const n = Number(val);
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+  }
+
+  function compute() {
+    let totCred = 0, totWeighted = 0;
+    [...tbody.querySelectorAll('tr')].forEach(tr => {
+      const credit = parseCredit(tr.querySelector('input[type="number"]').value);
+      const grade = tr.querySelector('select').value;
+      if (credit > 0 && gradePoints[grade] !== undefined) {
+        totCred += credit;
+        totWeighted += credit * gradePoints[grade];
+      }
+    });
+    const sgpa = totCred > 0 ? (totWeighted / totCred) : 0;
+    return { totCred, totWeighted, sgpa };
+  }
+
+  function showLive() {
+    const { totCred, totWeighted, sgpa } = compute();
+    result.textContent = `Total Credits: ${totCred.toFixed(2)} | Weighted Points: ${totWeighted.toFixed(2)} | SGPA: ${sgpa.toFixed(2)} / 10`;
+  }
+
+  addRowBtn.onclick = () => { addRow(); showLive(); };
+  calcBtn.onclick = showLive;
+  tbody.addEventListener('input', showLive);
+  tbody.addEventListener('change', showLive);
+  addRow(); addRow(); addRow();
+  showLive();
+
+  // Counter toggle button
+  const counterBtn = document.getElementById('counterBtn');
+  const counterBox = document.getElementById('counterBox');
+  counterBtn.onclick = () => counterBox.classList.toggle('show');
+</script>
+</body>
+</html>
